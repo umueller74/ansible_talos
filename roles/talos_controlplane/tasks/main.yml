@@ -1,0 +1,11 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: Apply controlplane config
+  command:
+    cmd: >
+      talosctl apply-config
+      --insecure
+      --nodes {{ inventory_hostname  }}
+      --file {{ talos_output_dir }}/controlplane.yaml
+      --talosconfig=./{{ talos_output_dir }}/talosconfig
+  delegate_to: "localhost"

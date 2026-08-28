@@ -1,0 +1,4 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for roles/talos_controlplane
+talos_output_dir: "{{ playbook_dir }}/generated"

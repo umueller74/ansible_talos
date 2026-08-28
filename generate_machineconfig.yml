@@ -1,0 +1,10 @@
+---
+- name: Generate talosctl machine config
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Run talosctl gen config
+      import_role:
+        name: talos_machineconfig
+        

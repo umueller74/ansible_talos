@@ -1,0 +1,101 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for roles/talos_machineconfig
+- name: Set first controlplane host
+  ansible.builtin.set_fact:
+    target_host: "{{ groups['talos_controlplane'][0] }}"
+
+- name: Generate Talos cluster config in {{ talos_output_dir }}
+  command:
+    cmd: >
+      talosctl gen config
+      {{ talos_cluster_name }}
+      {{ talos_cluster_endpoint }}
+      --output-dir {{ talos_output_dir }}
+  args:
+    creates: "{{ talos_output_dir }}/controlplane.yaml"
+
+- name: Create timestamp for backup
+  ansible.builtin.set_fact:
+    talos_timestamp: "{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }}"
+    
+- name: Backup controlplane.yaml
+  ansible.builtin.copy:
+    src: "{{ talos_output_dir }}/controlplane.yaml"
+    dest: "{{ talos_output_dir }}/controlplane.yaml.{{ talos_timestamp }}"
+    remote_src: true
+
+- name: Read controlplane.yaml
+  ansible.builtin.slurp:
+    src: "{{ talos_output_dir }}/controlplane.yaml"
+  register: cp_raw
+
+- name: Parse YAML
+  ansible.builtin.set_fact:
+    cp_docs: "{{ cp_raw.content | b64decode | from_yaml_all }}"
+
+- name: Extract controlplane document
+  ansible.builtin.set_fact:
+    cp: "{{ cp_docs[0] }}"
+
+- name: Modify controlplane cluster config
+  ansible.builtin.set_fact:
+    cp: >-
+      {{
+        cp | combine({
+          'cluster': cp.cluster | default({}) | combine({
+            'allowSchedulingOnControlPlanes': controlplane_is_worker | bool
+          }, recursive=True)
+        }, recursive=True)
+      }}
+
+- name: Modify controlplane machine config
+  ansible.builtin.set_fact:
+    cp: >-
+      {{
+        cp | combine({
+          'machine': cp.machine | default({}) | combine({
+            'install': (cp.machine.install | default({})) | combine({
+              'disk': hostvars[target_host].disk
+            }, recursive=True),
+
+            'network': (cp.machine.network | default({})) | combine({
+              'nameservers': dns | default(cp.machine.network.nameservers | default([]))
+            }, recursive=True),
+
+            'time': (cp.machine.time | default({})) | combine({
+              'servers': ntp_servers | default(cp.machine.time.servers | default([]))
+            }, recursive=True)
+
+          }, recursive=True)
+        }, recursive=True)
+      }}
+
+- name: Set static IP in controlplane config
+  ansible.builtin.set_fact:
+    cp: >-
+      {{
+        cp | combine({
+          'machine': cp.machine | default({}) | combine({
+            'network': (cp.machine.network | default({})) | combine({
+              'interfaces': [
+                {
+                  'interface': 'eth0',
+                  'addresses': [hostvars[target_host].network.ip],
+                  'routes': [
+                    {
+                      'network': '0.0.0.0/0',
+                      'gateway': hostvars[target_host].network.gateway
+                    }
+                  ]
+                }
+              ]
+            }, recursive=True)
+          }, recursive=True)
+        }, recursive=True)
+      }}
+
+- name: Write updated controlplane.yaml
+  ansible.builtin.copy:
+    dest: "{{ talos_output_dir }}/controlplane.yaml"
+    content: "{{ cp | to_nice_yaml }}"

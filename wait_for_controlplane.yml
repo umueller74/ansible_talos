@@ -1,0 +1,11 @@
+- name: Wait for controlplane node to come back
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Wait for Talos API to become reachable again
+      ansible.builtin.wait_for:
+        host: groups['talos_controlplane'][0]
+        port: 50000
+        delay: 10
+        timeout: 600

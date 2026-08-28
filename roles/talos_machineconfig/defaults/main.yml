@@ -1,0 +1,5 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for roles/talos_machineconfig
+talos_output_dir: "{{ playbook_dir }}/{{ talos_cluster_name }}"
+controlplane_is_worker: false

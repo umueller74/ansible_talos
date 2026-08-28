@@ -1,0 +1,11 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: Bootstrap Talos cluster
+  hosts: talos_controlplane
+  gather_facts: false
+
+  tasks:
+    - name: Apply bootstrap to controlplane via role talos_bootstrap
+      import_role:
+        name: talos_bootstrap
+      delegate_to: localhost

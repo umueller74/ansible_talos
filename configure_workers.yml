@@ -1,0 +1,9 @@
+- name: Apply config to worker via role talos_worker
+  hosts: talos_workers
+  gather_facts: false
+
+  tasks:
+    - name: Apply config to worker
+      import_role:
+        name: talos_worker
+      delegate_to: localhost

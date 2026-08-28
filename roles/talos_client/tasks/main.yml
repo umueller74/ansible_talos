@@ -1,0 +1,99 @@
+# SPDX-License-Identifier: MIT-0
+---
+- name: Gather normalized platform facts
+  ansible.builtin.set_fact:
+    talosctl_os: "{{ talosctl_os_map[ansible_facts.system] }}"
+    talosctl_arch: "{{ talosctl_arch_map[ansible_facts.architecture] }}"
+    talosctl_binary: "{{ talosctl_binary_name[ansible_facts.system] }}"
+
+- name: Set install directory
+  ansible.builtin.set_fact:
+    talosctl_install_dir: >-
+      {{
+        talosctl_install_dir_windows
+        if ansible_facts.system == 'Windows'
+        else (
+          talosctl_install_dir_macos
+          if ansible_facts.system == 'Darwin'
+          else talosctl_install_dir_linux
+        )
+      }}
+
+- name: Build download URL
+  ansible.builtin.set_fact:
+    talosctl_download_url: >-
+      https://github.com/siderolabs/talos/releases/download/{{ talosctl_version }}/talosctl-{{ talosctl_os }}-{{ talosctl_arch }}
+
+- name: Append .exe for Windows
+  ansible.builtin.set_fact:
+    talosctl_download_url: "{{ talosctl_download_url }}.exe"
+  when: ansible_facts.system == "Windows"
+
+- name: Ensure install directory exists (Linux/macOS)
+  ansible.builtin.file:
+    path: "{{ talosctl_install_dir }}"
+    state: directory
+    mode: "0755"
+  when: ansible_facts.system != "Windows"
+
+- name: Ensure install directory exists (Windows)
+  ansible.windows.win_file:
+    path: "{{ talosctl_install_dir }}"
+    state: directory
+  when: ansible_facts.system == "Windows"
+
+- name: Download talosctl on Linux/macOS
+  ansible.builtin.get_url:
+    url: "{{ talosctl_download_url }}"
+    dest: "{{ talosctl_install_dir }}/{{ talosctl_binary }}"
+    mode: "0755"
+  when: ansible_facts.system != "Windows"
+
+- name: Download talosctl on Windows
+  ansible.windows.win_get_url:
+    url: "{{ talosctl_download_url }}"
+    dest: "{{ talosctl_install_dir }}\\{{ talosctl_binary }}"
+  when: ansible_facts.system == "Windows"
+
+- name: Add talosctl to Windows PATH
+  ansible.windows.win_path:
+    elements:
+      - "{{ talosctl_install_dir }}"
+    state: present
+  when: ansible_facts.system == "Windows"
+
+- name: Verify talosctl installation (Unix)
+  ansible.builtin.command:
+    cmd: "{{ talosctl_install_dir }}/{{ talosctl_binary }} version --client"
+  register: talosctl_version_output_unix
+  changed_when: false
+  when: ansible_facts.system != "Windows"
+
+- name: Verify talosctl installation (Windows)
+  ansible.windows.win_command: >
+    "{{ talosctl_install_dir }}\\{{ talosctl_binary }}" version --client
+  register: talosctl_version_output_windows
+  changed_when: false
+  when: ansible_facts.system == "Windows"
+
+- name: Normalize talosctl output
+  ansible.builtin.set_fact:
+    talosctl_version_output: >-
+      {{
+        talosctl_version_output_unix
+        if talosctl_version_output_unix is defined
+        else talosctl_version_output_windows
+      }}
+
+- name: Parse talosctl version output
+  ansible.builtin.set_fact:
+    talosctl_version_lines: "{{ talosctl_version_output.stdout.split('\n') }}"
+
+- name: Show installed version nicely
+  ansible.builtin.debug:
+    msg:
+      Client: "{{ talosctl_version_lines[1] | trim }}"
+      SHA: "{{ talosctl_version_lines[2] | trim }}"
+      Go version: "{{ talosctl_version_lines[4] | trim }}"
+      OS/Arch: "{{ talosctl_version_lines[5] | trim }}"
+

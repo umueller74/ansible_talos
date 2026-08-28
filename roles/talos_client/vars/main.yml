@@ -1,0 +1,27 @@
+#SPDX-License-Identifier: MIT-0
+---
+talosctl_version: "v1.13.0"
+
+# Architecture mapping
+talosctl_arch_map:
+  x86_64: amd64
+  amd64: amd64
+  aarch64: arm64
+  arm64: arm64
+
+# OS mapping
+talosctl_os_map:
+  Linux: linux
+  Darwin: darwin
+  Windows: windows
+
+# Install paths
+talosctl_install_dir_linux: /usr/local/bin
+talosctl_install_dir_macos: /usr/local/bin
+talosctl_install_dir_windows: 'C:\Program Files\talosctl'
+
+# Binary names
+talosctl_binary_name:
+  Linux: talosctl
+  Darwin: talosctl
+  Windows: talosctl.exe

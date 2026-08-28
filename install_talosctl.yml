@@ -1,0 +1,12 @@
+---
+- name: Install Talosctl
+  hosts: localhost
+  become: true
+  gather_facts: true
+  vars_files:
+    - vars/talos.yml
+
+  tasks:
+    - name: Install talosctl
+      import_role:
+        name: talos_client

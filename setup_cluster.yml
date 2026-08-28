@@ -1,0 +1,7 @@
+---
+- import_playbook: install_talosctl.yml
+- import_playbook: generate_machineconfig.yml
+- import_playbook: configure_controlplane.yml
+- import_playbook: wait_for_controlplane.yml
+- import_playbook: bootstrap_cluster.yml
+- import_playbook: configure_workers.yml

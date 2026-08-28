@@ -1,0 +1,9 @@
+- name: Apply config to controleplane via role talos_controlplane
+  hosts: talos_controlplane
+  gather_facts: false
+
+  tasks:
+    - name: Apply config to controlplane
+      import_role:
+        name: talos_controlplane
+      delegate_to: localhost
