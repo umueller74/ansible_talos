@@ -1,3 +1,4 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for roles/talos_client
+talosctl_version: "{{ talos_version | default('v1.13.0') }}"

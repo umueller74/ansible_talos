@@ -1,10 +1,10 @@
 ---
-- name: Generate talosctl machine config
-  hosts: localhost
+- name: Generate per-node Talos machine configs
+  hosts: talos
+  connection: local
   gather_facts: false
 
   tasks:
-    - name: Run talosctl gen config
-      import_role:
+    - name: Generate machine configs
+      ansible.builtin.import_role:
         name: talos_machineconfig
-        

@@ -1,9 +1,10 @@
-- name: Apply config to controleplane via role talos_controlplane
+---
+- name: Apply config to controlplane via role talos_controlplane
   hosts: talos_controlplane
+  connection: local
   gather_facts: false
 
   tasks:
     - name: Apply config to controlplane
-      import_role:
+      ansible.builtin.import_role:
         name: talos_controlplane
-      delegate_to: localhost

@@ -1,11 +1,19 @@
+---
 - name: Wait for controlplane node to come back
-  hosts: localhost
+  hosts: talos_controlplane[0]
+  connection: local
   gather_facts: false
 
   tasks:
-    - name: Wait for Talos API to become reachable again
-      ansible.builtin.wait_for:
-        host: groups['talos_controlplane'][0]
-        port: 50000
-        delay: 10
-        timeout: 600
+    - name: Wait until the Talos API answers with the cluster talosconfig
+      ansible.builtin.command:
+        cmd: >-
+          talosctl version
+          --talosconfig {{ talos_output_dir }}/talosconfig
+          --endpoints {{ inventory_hostname }}
+          --nodes {{ inventory_hostname }}
+      register: talos_wait
+      until: talos_wait.rc == 0
+      retries: 60
+      delay: 10
+      changed_when: false

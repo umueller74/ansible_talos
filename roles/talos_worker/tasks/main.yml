@@ -1,11 +1,10 @@
 #SPDX-License-Identifier: MIT-0
 ---
 - name: Apply worker config
-  command:
-    cmd: >
+  ansible.builtin.command:
+    cmd: >-
       talosctl apply-config
       --insecure
-      --nodes {{ inventory_hostname  }}
-      --file {{ talos_output_dir }}/worker.yaml
-      --talosconfig=./{{ talos_output_dir }}/talosconfig
-  delegate_to: "localhost"
+      --nodes {{ inventory_hostname }}
+      --file {{ talos_output_dir }}/nodes/{{ inventory_hostname }}.yaml
+  changed_when: true
