@@ -12,6 +12,12 @@ Talos nodes have no SSH and no shell. All plays therefore run on the Ansible con
 
 `install_talosctl.yml` downloads `talosctl` itself, so it does not need to be installed beforehand.
 
+Install the required collection once:
+
+```sh
+ansible-galaxy collection install -r requirements.yml
+```
+
 ## Configuration
 
 ### Inventory
@@ -39,7 +45,7 @@ talos:
             gateway: 192.168.0.1
 ```
 
-The first host in `talos_controlplane` is the cluster endpoint and the bootstrap target.
+Every node gets its own config with its `hostname`, `disk`, IP and gateway. The first host in `talos_controlplane` is the cluster endpoint and the bootstrap target.
 
 ### Cluster variables
 
@@ -51,11 +57,12 @@ Set these in `inventory/group_vars/all.yaml`:
 | `talos_version` / `kubernetes_version` | Talos and Kubernetes versions |
 | `talos_cluster_endpoint` | Kubernetes API endpoint, default `https://<first controlplane>:6443` |
 | `talos_output_dir` | Where generated configs go, default `./<talos_cluster_name>` |
-| `dns` | Nameservers written into the controlplane config |
-| `ntp_servers` | NTP servers written into the controlplane config |
+| `dns` | Nameservers for all nodes |
+| `domain` | Appended to each node's `hostname` (optional) |
+| `ntp_servers` | NTP servers for all nodes |
 | `controlplane_is_worker` | Allow workloads on controlplane nodes (default `false`) |
 
-The `talosctl` version is set separately in `roles/talos_client/vars/main.yml` (`talosctl_version`). Keep it in sync with `talos_version`.
+The installed `talosctl` version follows `talos_version` (override with `talosctl_version`).
 
 ## Usage
 
@@ -70,21 +77,21 @@ Or run the steps one by one, in this order:
 | Playbook | What it does |
 |---|---|
 | `install_talosctl.yml` | Downloads `talosctl` to the controller (needs sudo) |
-| `generate_machineconfig.yml` | Runs `talosctl gen config` once, then sets install disk, static IP, gateway, DNS and NTP in `controlplane.yaml` (a timestamped backup is kept) |
-| `configure_controlplane.yml` | Applies `controlplane.yaml` to the controlplane nodes |
-| `wait_for_controlplane.yml` | Waits until the Talos API on the first controlplane is back |
+| `generate_machineconfig.yml` | Runs `talosctl gen config` once, then builds and validates one config per node in `<talos_output_dir>/nodes/` (hostname, install disk, static IP, gateway, DNS, NTP) |
+| `configure_controlplane.yml` | Applies each controlplane node's config |
+| `wait_for_controlplane.yml` | Waits until the first controlplane has installed and answers with the cluster `talosconfig` |
 | `bootstrap_cluster.yml` | Bootstraps etcd on the first controlplane |
-| `configure_workers.yml` | Applies `worker.yaml` to the worker nodes |
+| `configure_workers.yml` | Applies each worker node's config |
 
-Configs are only generated if `<talos_output_dir>/controlplane.yaml` does not exist yet. Delete the directory to start over with new cluster secrets.
+Cluster secrets are only generated if `<talos_output_dir>/controlplane.yaml` does not exist yet; delete the directory to start over with new ones. The per-node configs are rebuilt on every run, so inventory changes are picked up.
 
 ## Generated files and secrets
 
-`talosctl gen config` writes `controlplane.yaml`, `worker.yaml` and `talosconfig` to `talos_output_dir`. These files contain the cluster CA keys and join tokens. Keep them out of public repositories, or encrypt them (for example with Ansible Vault or SOPS).
+`talosctl gen config` writes `controlplane.yaml`, `worker.yaml` and `talosconfig` to `talos_output_dir`; the per-node configs go to `nodes/` (git-ignored). These files contain the cluster CA keys and join tokens. Keep them out of public repositories, or encrypt them (for example with Ansible Vault or SOPS).
 
 ## Status
 
-Work in progress. Some playbooks still have bugs, and the `talos_kubeconfig`, `talos_upgrade` and `talos_common` roles are empty placeholders.
+Work in progress. The `talos_kubeconfig`, `talos_upgrade` and `talos_common` roles are empty placeholders. Node networking assumes one physical NIC per node.
 
 ## License
 

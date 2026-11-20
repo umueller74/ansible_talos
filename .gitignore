@@ -1,0 +1,3 @@
+# generated per-node configs (contain cluster secrets)
+*/nodes/
+*/patches/

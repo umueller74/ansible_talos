@@ -1,0 +1,26 @@
+# {{ ansible_managed }}
+# Per-node patch for {{ inventory_hostname }}, applied with `talosctl machineconfig patch`.
+machine:
+  install:
+    disk: {{ disk }}
+  network:
+    nameservers: {{ dns | to_json }}
+    interfaces:
+      - deviceSelector:
+          physical: true
+        addresses:
+          - {{ network.ip }}
+        routes:
+          - network: 0.0.0.0/0
+            gateway: {{ network.gateway }}
+  time:
+    servers: {{ ntp_servers | to_json }}
+{% if inventory_hostname in groups['talos_controlplane'] %}
+cluster:
+  allowSchedulingOnControlPlanes: {{ controlplane_is_worker | bool | to_json }}
+{% endif %}
+---
+apiVersion: v1alpha1
+kind: HostnameConfig
+auto: "off"
+hostname: {{ hostname ~ ('.' ~ domain if domain | default('') | length > 0 else '') }}

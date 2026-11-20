@@ -1,9 +1,10 @@
-- name: Apply config to worker via role talos_worker
-  hosts: talos_workers
+---
+- name: Apply config to workers via role talos_worker
+  hosts: talos_worker
+  connection: local
   gather_facts: false
 
   tasks:
     - name: Apply config to worker
-      import_role:
+      ansible.builtin.import_role:
         name: talos_worker
-      delegate_to: localhost

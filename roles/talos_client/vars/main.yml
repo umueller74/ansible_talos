@@ -1,6 +1,5 @@
 #SPDX-License-Identifier: MIT-0
 ---
-talosctl_version: "v1.13.0"
 
 # Architecture mapping
 talosctl_arch_map:
